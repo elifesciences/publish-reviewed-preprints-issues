@@ -1,0 +1,65 @@
+name: "Create issue: Publish manuscript"
+
+on:
+  workflow_dispatch:
+    inputs:
+      msid:
+        description: "Manuscript ID (e.g. 84855)"
+        required: true
+      versionManuscript:
+        description: "Manuscript version (default: 1)"
+        default: "1"
+        required: true
+      preprint-doi:
+        description: "Preprint DOI (e.g.: 10.1101/2021.06.21.449261)"
+        required: true
+
+jobs:
+  create-doi-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Get issue number
+      id: issue
+      run: |
+        echo "ISSUE_NUMBER=$(curl --silent -H "Accept: application/vnd.github+json" https://api.github.com/repos/${{ github.repository }}/issues?state=all | jq -r '.[0].number' | expr "$(cat)" + 1)" >> $GITHUB_ENV
+
+    - uses: imjohnbo/extract-issue-template-fields@v1
+      id: extract
+      with:
+        path: .github/ISSUE_TEMPLATE/publish_manuscript.md
+
+    - uses: bluwy/substitute-string-action@v2
+      id: title
+      with:
+        _input-text: "${{ steps.extract.outputs.title }}"
+        _format-key: '%%key%%'
+        preprint-doi: "${{ github.event.inputs.preprint-doi }}"
+        msid: "${{ github.event.inputs.msid }}"
+        version: "${{ github.event.inputs.versionManuscript }}"
+
+    - uses: bluwy/substitute-string-action@v2
+      id: body
+      with:
+        _input-text: "${{ steps.extract.outputs.body }}"
+        _format-key: '%%key%%'
+        preprint-doi: "${{ github.event.inputs.preprint-doi }}"
+        msid: "${{ github.event.inputs.msid }}"
+        version: "${{ github.event.inputs.versionManuscript }}"
+        repo: "${{ github.repository }}"
+        issue-id: "${{ env.ISSUE_NUMBER }}"
+
+    - name: "Create issue: Publish manuscript ${{ github.event.inputs.versionManuscript }}v${{ github.event.inputs.versionManuscript }}"
+      uses: imjohnbo/issue-bot@v3
+      with:
+        assignees: ${{ steps.extract.outputs.assignees }}
+        labels: ${{ steps.extract.outputs.labels }}
+        title: "${{ steps.title.outputs.result }}"
+        body: "${{ steps.body.outputs.result }}"
+        project-v2-path: orgs/elifesciences/projects/24
+        token: ${{ secrets.PAT }}
