@@ -62,3 +62,4 @@ jobs:
         title: "${{ steps.title.outputs.result }}"
         body: "${{ steps.body.outputs.result }}"
         project-v2-path: orgs/elifesciences/projects/24
+        token: ${{ secrets.PAT }}
