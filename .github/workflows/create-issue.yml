@@ -35,6 +35,7 @@ jobs:
       id: extract
       with:
         path: .github/ISSUE_TEMPLATE/publish_manuscript.md
+        token: ${{ secrets.PAT }}
 
     - uses: bluwy/substitute-string-action@v2
       id: title
